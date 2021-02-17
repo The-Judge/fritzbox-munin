@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
+# -*- coding: utf-8 -*-
 """
   fritzbox_power_consumption - A munin plugin for Linux to monitor AVM Fritzbox
   Copyright (C) 2015 Christian Stade-Schuldt
@@ -26,6 +27,58 @@ PAGE = 'energy'
 DEVICES = ['system', 'cpu', 'wifi', 'dsl', 'ab', 'usb']
 
 
+def get_dict_from_devices(devices):
+    """
+    Converts data returned from json.loads(fritzbox_helper.get_xhr_content) to dictionary
+    :param devices: json.loads(xhr_data)['data']['drain']
+    :type devices: list
+    :return: dict
+    """
+    useable_devices = [d for d in devices if 'actPerc' in d]
+
+    device_dict = {
+        'system': None,
+        'cpu': None,
+        'wifi': None,
+        'dsl': None,
+        'ab': None,
+        'usb': None
+    }
+
+    def _get_device_from_name(name):
+        device_aliases = {
+            'system': [
+                'FRITZ!Box Gesamtsystem',
+            ],
+            'cpu': [
+                'FRITZ!Box Hauptprozessor',
+            ],
+            'wifi': [
+                'WLAN',
+            ],
+            'dsl': [],
+            'ab': [
+                'analoge FON-Anschlüsse',
+            ],
+            'usb': [
+                'USB-Geräte',
+            ]
+        }
+        for da in device_aliases.keys():
+            for a in device_aliases.get(da):
+                if name in a.decode("utf-8"):
+                    return da
+        return None
+
+    for device in useable_devices:
+        device_type = _get_device_from_name(device.get('name'))
+        if device_type is None:
+            continue
+        device_dict[device_type] = device
+
+    return device_dict
+
+
 def get_power_consumption():
     """get the current power consumption usage"""
 
@@ -36,8 +89,11 @@ def get_power_consumption():
     xhr_data = fh.get_xhr_content(server, session_id, PAGE)
     data = json.loads(xhr_data)
     devices = data['data']['drain']
-    for i, device in enumerate(DEVICES):
-        print('%s.value %s' % (device, devices[i]['actPerc']))
+    devices_dict = get_dict_from_devices(devices)
+
+    for device in devices_dict.keys():
+        if devices_dict[device] is not None:
+            print('%s.value %s' % (device, devices_dict[device]['actPerc']))
 
 
 def print_config():
