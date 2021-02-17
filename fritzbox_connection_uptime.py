@@ -18,11 +18,17 @@ import os
 import sys
 
 from fritzconnection import FritzConnection
+from fritzbox_helper import model_needs_login
 
 
 def print_values():
     try:
         conn = FritzConnection(address=os.environ['fritzbox_ip'])
+        if model_needs_login(conn.modelname):
+            conn = FritzConnection(address=os.environ['fritzbox_ip'],
+                                   user='dslf-config',
+                                   password=os.environ['fritzbox_password'],
+                                   )
     except Exception as e:
         sys.exit("Couldn't get connection uptime")
 

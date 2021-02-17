@@ -135,3 +135,20 @@ def get_xhr_content(server, session_id, page, port=80):
         print(err)
         sys.exit(1)
     return r.content
+
+
+def model_needs_login(model):
+    """
+    Checks if provided fritzbox model is in the list of devices which need an authenticated login
+    to extract traffic data.
+
+    :param model: String describing the fritzbox model; as returned from FritzConnection().modelname
+    :return bool
+    """
+    models_require_login = [
+        "FRITZ!Box 6490 Cable",
+    ]
+    for m in models_require_login:
+        if model.startswith(m):
+            return True
+    return False
